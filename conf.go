@@ -3,7 +3,7 @@ package main
 import (
 	"io/ioutil"
 	"encoding/json"
-	"electra/electre"
+	"electre/electre"
 )
 
 

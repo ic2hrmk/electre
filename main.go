@@ -1,47 +1,58 @@
 package main
 
 import (
+	"electre/electre"
+	"electre/utils"
+
 	"flag"
 	"log"
-	"electra/electre"
 	"fmt"
 )
 
-var fileName = flag.String("file","data.json","income data")
+var fileName = flag.String("file", "data.json", "File with formatted data (json format)")
+var algorithm = flag.Int("electre", electreOne, "Electre algorithm [1 or 2]")
 
-func printMatrix(name string , matrix [][]float32) {
-	fmt.Println("=== ", name, " ===")
-	for i := 0; i < len(matrix); i++ {
-		for j := 0; j < len(matrix[0]); j++ {
-			fmt.Printf("%10.3f", matrix[i][j])
-		}
-
-		fmt.Println()
-	}
+func init() {
+	flag.Parse()
 }
 
+const (
+	electreOne = 1
+	electreTwo = 2
+)
+
 func main() {
+	fmt.Println("FILE:    ", *fileName)
+	fmt.Println("Electre: ", *algorithm)
+
 	variant, err := readFile(*fileName)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	f, d := electre.GetIndices(variant, electre.Electre2)
+	var f, d [][]float32
 
-	printMatrix("f", f)
-	printMatrix("d", d)
+	switch *algorithm {
+	case electreOne:
+		f, d = electre.GetIndices(variant, electre.Electre1)
+	case electreTwo:
+		f, d = electre.GetIndices(variant, electre.Electre2)
+	default:
+		log.Fatal("unknown electre chosen")
+	}
+
+	utils.PrintMatrix("f matrix", f)
+	utils.PrintMatrix("d marix", d)
 
 	requiredCondition := electre.GetRequiredConditionMatrix(f, variant.C)
-	sufficientConditions := electre.GetSufficientConditionMatrix(d, variant.D)
+	utils.PrintMatrix("Requiered conditions", requiredCondition)
 
-	printMatrix("requieredCondition", requiredCondition)
-	printMatrix("sufficientConditions", sufficientConditions)
+	sufficientConditions := electre.GetSufficientConditionMatrix(d, variant.D)
+	utils.PrintMatrix("Sufficient conditions", sufficientConditions)
 
 	combinedConditions := electre.CombineConditions(requiredCondition, sufficientConditions)
-
-	printMatrix("combinedConditions", combinedConditions)
+	utils.PrintMatrix("Combined conditions", combinedConditions)
 
 	relations := electre.GetRelation(combinedConditions)
-	fmt.Println("=== Relations ===")
-	fmt.Println(relations)
+	utils.PrintRelations(relations)
 }

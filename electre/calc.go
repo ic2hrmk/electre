@@ -1,13 +1,24 @@
 package electre
 
 import (
+	"electre/utils"
+
 	"math"
 	"fmt"
 )
 
-type ElectreType func(kPlus, kZero, kMinus float32) float32
+type ElectreType func(kPlus, kZero, kMinus float32, w []float32) float32
 
-func Electre2(pPlus, pZero, pMinus float32) float32 {
+func Electre1(pPlus, pZero, pMinus float32, w []float32) float32 {
+	var sum float32 = 0.0
+	for i := range w {
+		sum += w[i]
+	}
+
+	return (pPlus + pZero) / sum
+}
+
+func Electre2(pPlus, pZero, pMinus float32, w []float32) float32 {
 	return pPlus / pMinus
 }
 
@@ -28,7 +39,7 @@ func GetIndices(variant *Variant, electreMethod ElectreType) (f [][]float32, d [
 	}
 
 	//	Iterations
-	for i := 0; i < indicesNumber - 1; i++ {
+	for i := 0; i < indicesNumber; i++ {
 		for j := 0; j < indicesNumber; j++ {
 
 			if i == j {
@@ -53,22 +64,23 @@ func GetIndices(variant *Variant, electreMethod ElectreType) (f [][]float32, d [
 				}
 			}
 
-			fmt.Println("X(", i + 1, ",", j + 1, ")")
-			fmt.Println("   K+{", kPlus, "}")
-			fmt.Println("   K={", kEq, "}")
-			fmt.Println("   K-{", kMinus, "}")
+			fmt.Println("X[", i+1, ",", j+1, "]")
+			fmt.Println("   K(+) = {", utils.GetKIndexArray(kPlus), "}")
+			fmt.Println("   K(=) = {", utils.GetKIndexArray(kEq), "}")
+			fmt.Println("   K(-) = {", utils.GetKIndexArray(kMinus), "}")
+
+			fmt.Println("   --- ")
 
 			pPlus := indexSum(W, kPlus)
 			pEq := indexSum(W, kEq)
 			pMinus := indexSum(W, kMinus)
 
-			fmt.Println("   P+", pPlus)
-			fmt.Println("   P0", pEq)
-			fmt.Println("   P-", pMinus)
+			fmt.Println("   P(+) = ", pPlus)
+			fmt.Println("   P(=) = ", pEq)
+			fmt.Println("   P(-) = ", pMinus)
 
-			f[i][j] = electreMethod(pPlus, pEq, pMinus)
+			f[i][j] = electreMethod(pPlus, pEq, pMinus, W)
 			d[i][j] = calcNonComplianceIndices(kMinus, W, mainRow, compRow)
-
 		}
 	}
 
@@ -151,7 +163,7 @@ func GetRelation(combinedConditions [][]float32) (relations [][]float32) {
 
 //	Helpers
 
-func indexSum(w []float32, k[]int) (sum float32) {
+func indexSum(w []float32, k []int) (sum float32) {
 	sum = 0
 
 	for _, index := range k {
@@ -170,7 +182,7 @@ func calcNonComplianceIndices(kMinus []int, w []float32, x1 []float32, x2 []floa
 
 		//	Indexes of smaller values
 		for _, i := range kMinus {
-			temp := w[i] * float32(math.Abs(float64(x1[i] - x2[i])))
+			temp := w[i] * float32(math.Abs(float64(x1[i]-x2[i])))
 
 			if temp > maxByKMinus {
 				maxByKMinus = temp
@@ -179,7 +191,7 @@ func calcNonComplianceIndices(kMinus []int, w []float32, x1 []float32, x2 []floa
 
 		//	Indexes of all values
 		for i, _ := range w {
-			temp := w[i] * float32(math.Abs(float64(x1[i] - x2[i])))
+			temp := w[i] * float32(math.Abs(float64(x1[i]-x2[i])))
 
 			if temp > maxByAll {
 				maxByAll = temp
